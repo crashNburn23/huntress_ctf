@@ -8,19 +8,10 @@ The framework I used for the Huntress month long CTF (2nd Place Finish): each da
 
 This repository is the framework only. Lane solvers start empty (the generic lane answers nothing) and grow from the fixes you write.
 
-```
-                      +------------------- run/dayNN/ -------------------+  
-  Game Master  \<--\>   |  runner (tools/run.py, detached)                 |  
-   (gm\_url)           |    one thread per lane: single -\> TT -\> mastery  |  
-                      |    solve = lane solver + plugins + pins          |  
-                      |    fail  -\> brief + status "escalated" -\> park   |  
-                      |    plugin/pin change -\> offline rebuild -\> submit|  
-                      |                                                  |  
-                      |  status.jsonl  \<-- claim / watch --\>  fixers     |  
-                      |  watchdog: STALL / UNCLAIMED / FIXER\_QUIET / ETA |  
-                      +--------------------------------------------------+  
-  tmux race-dNN:  \[board | watchdog\]   \[S1: Claude, lanes a,b,c\] \[S2: Claude, lanes d,e,f\] ...
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
+  <img alt="Architecture: a detached runner in run/dayNN/ talks to the Game Master, reports to status.jsonl and is fixed through plugins and pins by Claude fixer sessions in tmux" src="docs/img/architecture-light.svg" width="880">
+</picture>
 
 ## How it worked
 
@@ -107,21 +98,10 @@ Section 1 is the final day of a real race, kept as recorded. Sections 2–6 desc
 
 ### 1 · Final day, second by second
 
-```
-T0 = 09:00:01, day detected (65 hedged polls, winning call 1.6 s)  
-  
-                   mobile |░▒▓  
-                   script |░▒▓▓  
-                     warm |░▒▓▓▓  
-                      bin |░░░░░░░░░░▒▒▒▒▒▓▓▓▓  
-                     meta |░░░░░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  
- web: Full Stack Incident |░░░░░░░░░░░░░░░▒▒▒▓▓▓  
-  web: Framework Roulette |░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▒▒▓▓  
-                          +-------+-------+-------+-------+-------+-------+-------+-------+  
-                          0      30      60      90     120     150     180     210     240 s  
-  
-░ single   ▒ time trial   ▓ mastery   (8 characters = 30 s)
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/final-day-dark.svg">
+  <img alt="Final day timeline: mobile, script and warm finished in under 19 s; bin at 71.7 s; meta at 222.8 s; the two web lanes at 77.4 s and 236.8 s" src="docs/img/final-day-light.svg" width="880">
+</picture>
 
 | Lane | single | time trial | mastery | note |
 | - | - | - | - | - |
@@ -170,25 +150,10 @@ def run\_lane(lane, cid, args):
 
 ### 2 · Who talks to whom on race morning
 
-```
- launch.py --sessions N  (default 2)  
-   |-- runner (detached) ---------------------------------------------+  
-   |     one thread per lane: single -\> time\_trial -\> mastery          |  
-   |     lane solver + plugins on the downloaded bytes                 |  
-   |                                                                   v  
-   |   run/dayNN/ (shared files)                     race/gm.py: the one Game Master client  
-   |     status.jsonl  one row per lane and mode       shared token bucket (pace\_rate / pace\_burst)  
-   |     briefs/       wrong + blank keys              shared 429 lockout: everyone waits it out  
-   |     pins          hand-solved answers             retries on dropped connections and 5xx  
-   |     plugins/      new rules, loaded on change     records every reply -\> rec/ (replayed offline)  
-   |        ^   |                                                      |  
-   |        |   v  brief on a miss                                     v  
-   +-- tmux: Claude fixer sessions                              Game Master  
-         S1: core lanes  (watch board, hand-solve,              list · start · artifact  
-             pin, write plugins)                                submit · status · retry  
-         S2: target lanes such as web (solve the live  
-             target, submit through tools/gm.py)
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/race-morning-dark.svg">
+  <img alt="Who talks to whom: launch.py starts the runner and the Claude fixer sessions; both share files in run/dayNN/; every Game Master call goes through race/gm.py" src="docs/img/race-morning-light.svg" width="880">
+</picture>
 
 `session\_split = "core\_target"` (default) gives S1 every core lane and S2 the target lanes. If one session juggling several lanes is too much overhead, use `session\_split = "weight"` with `--sessions N` so each core lane can have its own session. Nothing calls the Game Master directly: the runner, the fixers and anything run by hand go through one client that shares the request budget across processes. Fixers never re-run the race; they drop a pin or a plugin into the shared files, and the runner notices and re-runs the lane.
 
@@ -216,23 +181,10 @@ def run\_lane(lane, cid, args):
 
 ### 3 · How a miss turns into a correct submit
 
-```
- build answers (solver + plugins) --\> any blank? --yes--\> escalate (no submit) --+  
-          |                              |no                                   |  
-          |                        submit once (every key) --\> CORRECT --\> next mode  
-          |                              | not correct                         |  
-          |                              v                                     |  
-          |                        escalate: brief + status row \<--------------+  
-          |                              |  
-          |                        park: watch plugin + pin stamps  
-          |                              |                 ^  
-          |                    fixer claims the row, reads the brief:  
-          |                    pin what it knows (seconds), then a plugin;  
-          |                    TAKEOVER: hand-solve and pin  
-          |                              |  
-          +---- hot re-run: rebuild OFFLINE from the saved members, pins on top,  
-                resubmit once to the SAME attempt (same artifact, same clock)
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/miss-flow-dark.svg">
+  <img alt="Miss to correct: blank keys escalate without a submit; a wrong submit escalates; a fixer pins or writes a plugin; the hot re-run rebuilds offline and resubmits once to the same attempt" src="docs/img/miss-flow-light.svg" width="880">
+</picture>
 
 The solver gets one clean submit. Everything after a miss is aimed at changing the pin file or a plugin as fast as possible, because that change is what triggers the re-run. When a pin solved a mode and no plugin exists yet, the runner prints `PLUGIN\_FIRST`: the plugin is owed before the next mode starts. The TAKEOVER rule fires when the same key is wrong after 2 installs, 5 minutes after an escalation, or when the fixer can't explain the gap within 2 minutes.
 
@@ -370,20 +322,10 @@ def answer(q, ctx):
 
 ### 6 · Each race makes the next one colder
 
-```
-              Race day: misses become pins, then plugins  
-                 ^                                  |  
-                 |                                  v  
-     Forecast plugins                         Recordings  
-     tomorrow's likely formats,               every start, artifact and  
-     fill-only, gated on strong evidence      submit reply (race/gm.py)  
-                 ^                                  |  
-                 |                                  v  
-     Drills                                   Replay + fixtures  
-     hide newer plugins (--mask), replay      tools/replay.py grades every  
-     on a race-faithful clock                 recorded mode offline, no GM calls  
-                 ^\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_|
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/cycle-dark.svg">
+  <img alt="Each race makes the next colder: race day, recordings, replay and fixtures, drills, forecast plugins, and back to race day" src="docs/img/cycle-light.svg" width="880">
+</picture>
 
 The evening work never touches the live race. Recordings let every fix be tested offline against every earlier day and give drills their material; drills train the lane skills with the newer plugins hidden. The payoff is a forecast written the night before that answers a brand-new format with no fixer at all.
 

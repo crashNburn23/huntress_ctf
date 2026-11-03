@@ -20,12 +20,12 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKIP_DIRS = {".git", "__pycache__", "run", ".venv"}
-TEXT_EXT = {".py", ".md", ".toml", ".txt", ".json", ".sh", ".cfg", ".ini", ".yml", ".yaml", ""}
+TEXT_EXT = {".py", ".md", ".toml", ".txt", ".json", ".sh", ".cfg", ".ini", ".yml", ".yaml", ".svg", ""}
 
 IPV4 = re.compile(r"(?<![\d.])((?:\d{1,3}\.){3}\d{1,3})(?![\d.])")
 URL = re.compile(r"https?://[^\s'\"<>)]+")
 OK_URL = re.compile(r"https?://(localhost|127\.0\.0\.1|(?:[\w-]+\.)*example\.(?:com|org|net)|[\w.-]*\.invalid)"
-                    r"([:/]|$)|https?://\{", re.I)
+                    r"([:/]|$)|https?://\{|https?://www\.w3\.org/2000/svg$", re.I)   # SVG namespace
 HOME = re.compile(r"/home/[A-Za-z0-9_.-]+|/Users/[A-Za-z0-9_.-]+")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 TOKEN = re.compile(r"(?<![A-Za-z0-9+/=_-])[A-Za-z0-9+/_-]{40,}={0,2}(?![A-Za-z0-9+/=_-])")
