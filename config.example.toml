@@ -1,0 +1,32 @@
+# Copy to config.toml (gitignored) and fill in. Every key can also be set as RACE_<KEY> in the environment.
+
+gm_url = "https://<game-master-host>/"     # base URL of the Game Master API
+token_file = "~/.config/race/token"          # bearer token (chmod 600); create it with: tools/gm.py pair --token-out ...
+ranked = false                               # true: timed modes run on the ranked clock (opt-in)
+
+session_split = "core_target"                # core_target: S1 = all core lanes, S2 = target_lanes (web)
+                                             # weight: balance lanes by weight over `sessions`
+sessions = 2                                 # Claude fixer sessions (session_split = "weight" only)
+arm_at = "08:50:00"                          # fixer sessions start
+unlock_poll_at = "08:59:50"                  # runner starts polling for the day
+
+claude_mode = "auto"                         # Claude permission mode for the fixer sessions
+claude_model = ""                            # empty: Claude's default
+
+archive_passwords = []                       # tried in order on encrypted ZIP artifacts (use the published one)
+
+target_lanes = ["web"]                       # live-target lanes: handed straight to a fixer
+
+[lanes]                                      # name = weight (fixer help usually needed); drives the session split
+warm = 1
+meta = 2
+script = 1
+mobile = 1
+bin = 3
+web = 3
+
+[lane_match]                                 # optional regex over challenge ids
+# bin = "binary|reverse"
+
+[lane_solver]                                # optional: race/lanes/<module>.py per lane
+# warm = "example"

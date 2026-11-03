@@ -1,0 +1,10 @@
+# race output: recordings, members, briefs, status, pins (all event data)
+run/
+# local settings and secrets
+config.toml
+*.token
+token
+# python
+__pycache__/
+*.pyc
+.venv/
